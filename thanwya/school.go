@@ -1,7 +1,6 @@
 package thanwya
 
 type School struct {
-	School         string
-	DepartmentName string
-	Section        string
+	SchoolName     string `json:"School"`
+	DepartmentName string `json:"DeptName"`
 }

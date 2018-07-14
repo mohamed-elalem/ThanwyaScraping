@@ -24,8 +24,8 @@ func (fm *fetchingMiddleware) setNext(md middleware) {
 func (fm *fetchingMiddleware) next(students []Student) {
 	fm.students = students
 	for seatNumber := InitialSeatNumber; seatNumber <= LastSeatNumber; seatNumber++ {
+		wg.Add(1)
 		go func(seatNumber int) {
-			wg.Add(1)
 			fm.performFetching(seatNumber)
 			wg.Done()
 		}(seatNumber)

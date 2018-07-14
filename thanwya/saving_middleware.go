@@ -18,10 +18,10 @@ var (
 const (
 	insertQueryTemplate = `
 INSERT INTO students 
-(seat_number, name, total_grade)
+(seat_number, name, total_grade, student_type, school, department_name, branch, number_of_failures)
 VALUES
 {{ range . }}
-({{.SeatNumber}}, '{{.Name}}', '{{.TotalDegree}}') {{if not (isLastElement $ .)}},{{end}}
+({{.SeatNumber}}, '{{.Name}}', '{{.TotalDegree}}', '{{.StudentType}}', '{{.SchoolName}}', '{{.DepartmentName}}', '{{.Section | branch}}', {{.NumberOfFailures}}) {{if not (isLastElement $ .)}},{{end}}
 {{ end }}
 `
 )
@@ -32,25 +32,19 @@ func isLastElement(students []Student, student Student) bool {
 
 func init() {
 	var err error
-	connStr := "user=postgres dbname=thanwya sslmode=disable"
+	connStr := "user=" + DatabaseUser + " dbname=" + DatabaseName + " sslmode=" + DatabaseSSLMode
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	queryTemplate = template.Must(template.New("insertQuery").Funcs(template.FuncMap{"isLastElement": isLastElement}).Parse(insertQueryTemplate))
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
+	queryTemplate = template.Must(template.New("insertQuery").Funcs(template.FuncMap{"isLastElement": isLastElement, "branch": branch}).Parse(insertQueryTemplate))
 }
 
 type savingMiddleware struct {
 	middleware
 	nextMiddleware middleware
+	totalStudents  int
 }
 
 func (sm *savingMiddleware) next(students []Student) {
@@ -63,7 +57,8 @@ func (sm *savingMiddleware) next(students []Student) {
 		if _, err := db.Exec(query.String()); err != nil {
 			log.Fatalf("%+v", err)
 		}
-		fmt.Printf("\rStudents %d..%d inserted successfully...", i+1, end)
+		// fmt.Printf("\rStudents %d..%d inserted successfully...", i+1, end)
+		printProgress(end, len(students))
 	}
 	fmt.Println()
 	db.Close()

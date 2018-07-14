@@ -37,7 +37,7 @@ func (log *Log) Init() {
 }
 
 func (log *Log) Log(message string, level int) {
-	if _, err := log.file.WriteString(logLevels[level] + " - " + time.Now().Format(time.RFC1123Z) + message + "\n"); err != nil {
+	if _, err := log.file.WriteString(logLevels[level] + " - " + time.Now().Format(time.RFC1123Z) + " - " + message + "\n"); err != nil {
 		logging.Fatal(err)
 	}
 }
