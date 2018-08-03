@@ -33,5 +33,6 @@ func Run() {
 	// }
 	// fmt.Printf("%+v\n", student)
 	defer logger.Destroy()
+	defer db.Close()
 	mw.next(make([]Student, 0))
 }

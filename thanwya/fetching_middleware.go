@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strconv"
 )
 
@@ -24,6 +25,7 @@ func (fm *fetchingMiddleware) setNext(md middleware) {
 func (fm *fetchingMiddleware) next(students []Student) {
 	fm.students = students
 	for seatNumber := InitialSeatNumber; seatNumber <= LastSeatNumber; seatNumber++ {
+		limiter <- struct{}{}
 		wg.Add(1)
 		go func(seatNumber int) {
 			fm.performFetching(seatNumber)
@@ -39,17 +41,18 @@ func (fm *fetchingMiddleware) next(students []Student) {
 }
 
 func (fm *fetchingMiddleware) performNext(force bool) {
-	if force || len(fm.students) > MaxNumberOfArraySizeBeforeSave {
+	if force || len(fm.students) >= MaxNumberOfArraySizeBeforeSave {
 		mutex.Lock()
-		defer mutex.Unlock()
-		fmt.Println()
-		fm.nextMiddleware.next(fm.students)
-		fm.students = make([]Student, 0)
+		if len(fm.students) >= MaxNumberOfArraySizeBeforeSave {
+			fmt.Println()
+			fm.nextMiddleware.next(fm.students)
+		}
+		fm.students = fm.students[:0]
+		mutex.Unlock()
 	}
 }
 
 func (fm *fetchingMiddleware) performFetching(seatNumber int) {
-	limiter <- struct{}{}
 	defer func() {
 		<-limiter
 	}()
@@ -64,7 +67,7 @@ func (fm *fetchingMiddleware) performFetching(seatNumber int) {
 }
 
 func (fm *fetchingMiddleware) printProgress() {
-	fmt.Printf("\r%d students are fetched, failed attempts %d", fm.exist, fm.notExist)
+	fmt.Printf("\r%d students are fetched, failed attempts %d, total %d, Working goroutines %d", fm.exist, fm.notExist, fm.exist+fm.notExist, runtime.NumGoroutine())
 }
 
 func (fm *fetchingMiddleware) fetchStudent(seatNumber int) ([]Student, error) {

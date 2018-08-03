@@ -2,17 +2,19 @@ package thanwya
 
 import (
 	"bytes"
-	"database/sql"
 	"fmt"
 	"log"
 	"text/template"
+	"time"
 
 	_ "github.com/lib/pq"
 )
 
 var (
-	db            *sql.DB
 	queryTemplate *template.Template
+	wheel         string
+	done          chan struct{}
+	wheelIndex    int
 )
 
 const (
@@ -31,14 +33,9 @@ func isLastElement(students []Student, student Student) bool {
 }
 
 func init() {
-	var err error
-	connStr := "user=" + DatabaseUser + " dbname=" + DatabaseName + " sslmode=" + DatabaseSSLMode
-	db, err = sql.Open("postgres", connStr)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	queryTemplate = template.Must(template.New("insertQuery").Funcs(template.FuncMap{"isLastElement": isLastElement, "branch": branch}).Parse(insertQueryTemplate))
+	wheel = "/-\\|"
+	done = make(chan struct{})
 }
 
 type savingMiddleware struct {
@@ -48,6 +45,11 @@ type savingMiddleware struct {
 }
 
 func (sm *savingMiddleware) next(students []Student) {
+	defer func() {
+		done <- struct{}{}
+	}()
+	go sm.wheelChanger()
+
 	for i := 0; i < len(students); i += NumberOfCuncurrentInserts {
 		query := bytes.Buffer{}
 		end := min(i+NumberOfCuncurrentInserts, len(students))
@@ -58,13 +60,40 @@ func (sm *savingMiddleware) next(students []Student) {
 			log.Fatalf("%+v", err)
 		}
 		// fmt.Printf("\rStudents %d..%d inserted successfully...", i+1, end)
-		printProgress(end, len(students))
+		sm.printProgress(end, len(students))
 	}
 	fmt.Println()
-	db.Close()
 	sm.nextMiddleware.next(students)
+}
+
+func (sm *savingMiddleware) printProgress(current, total int) {
+	fmt.Printf("\r")
+	fmt.Printf("Saving ")
+	sm.printWheel()
+	fmt.Printf(" ")
+	printProgress(current, total)
 }
 
 func (sm *savingMiddleware) setNext(md middleware) {
 	sm.nextMiddleware = md
+}
+
+func (sm *savingMiddleware) wheelChanger() {
+	exitLoop := false
+	for {
+		select {
+		case <-done:
+			exitLoop = true
+		default:
+		}
+		if exitLoop {
+			break
+		}
+		time.Sleep(RefreshRate)
+		wheelIndex = (wheelIndex + 1) % len(wheel)
+	}
+}
+
+func (sm *savingMiddleware) printWheel() {
+	fmt.Printf(string(wheel[wheelIndex]))
 }

@@ -7,7 +7,8 @@ import (
 
 func printProgress(current, total int) {
 	perPartition := getPerPartition(current, total)
-	fmt.Print("\r[ ")
+
+	fmt.Print("[ ")
 	for i := 1; i <= NumberOfProgressPartitions; i++ {
 		if current >= min(perPartition*i, total) {
 			fmt.Print("#")
@@ -16,7 +17,6 @@ func printProgress(current, total int) {
 		}
 	}
 	fmt.Printf(" ] - %0.2f%%", getPercentage(current, total))
-
 }
 
 func getPerPartition(current, total int) int {

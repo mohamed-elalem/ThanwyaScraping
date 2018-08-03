@@ -1,5 +1,9 @@
 package thanwya
 
+import (
+	"time"
+)
+
 const (
 	BaseURL                        = "http://natega.youm7.com/Home/GetResultStage1/"
 	NumberOfGoRoutines             = 50
@@ -11,5 +15,6 @@ const (
 	DatabaseHost                   = "localhost"
 	DatabaseSSLMode                = "disable"
 	NumberOfProgressPartitions     = 100
-	MaxNumberOfArraySizeBeforeSave = 30000
+	MaxNumberOfArraySizeBeforeSave = 50000
+	RefreshRate                    = 64 * time.Millisecond
 )
