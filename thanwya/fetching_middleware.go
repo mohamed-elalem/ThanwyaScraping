@@ -27,12 +27,25 @@ func (fm *fetchingMiddleware) next(students []Student) {
 		wg.Add(1)
 		go func(seatNumber int) {
 			fm.performFetching(seatNumber)
+			fm.performNext(false)
 			wg.Done()
 		}(seatNumber)
 	}
 	wg.Wait()
 	fmt.Println()
-	fm.nextMiddleware.next(fm.students)
+	if len(fm.students) > 0 {
+		fm.performNext(true)
+	}
+}
+
+func (fm *fetchingMiddleware) performNext(force bool) {
+	if force || len(fm.students) > MaxNumberOfArraySizeBeforeSave {
+		mutex.Lock()
+		defer mutex.Unlock()
+		fmt.Println()
+		fm.nextMiddleware.next(fm.students)
+		fm.students = make([]Student, 0)
+	}
 }
 
 func (fm *fetchingMiddleware) performFetching(seatNumber int) {
