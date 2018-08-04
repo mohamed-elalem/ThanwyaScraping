@@ -16,7 +16,13 @@ func init() {
 	mw = fetchingMiddleware{nextMiddleware: &savingMiddleware{nextMiddleware: &blankMiddleware{}}}
 }
 
+func destroy() {
+	logger.Destroy()
+	closeDB()
+}
+
 func Run() {
+	defer destroy()
 	// resp, err := http.PostForm("http://natega.youm7.com/Home/GetResultStage1/", url.Values{"seatNumber": []string{"123456"}})
 	// if err != nil {
 	// 	log.Println(err)
@@ -32,7 +38,5 @@ func Run() {
 	// 	log.Fatalln(err)
 	// }
 	// fmt.Printf("%+v\n", student)
-	defer logger.Destroy()
-	defer closeDB()
 	mw.next(make([]Student, 0))
 }
